@@ -3,8 +3,9 @@ import json
 import os
 
 cwd_path = os.getcwd()
-log_path = os.path.join(cwd_path, "registered_plates/registered_plates.json")
+log_path = os.path.join(cwd_path, "registered_plates")
 os.makedirs(log_path, exist_ok=True)
+
 REGISTER_FILE = "registered_plates/registered_plates.json"
 
 def load_registered_plates():
