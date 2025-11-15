@@ -10,10 +10,10 @@
             },
            
         {
-            "license_plate": "A Dubai 98765",
-            "category": "A",
+            "license_plate": "DD Dubai 50748",
+            "category": "DD",
             "region": "Dubai",
-            "number": "98765",
+            "number": "50748",
             "status": "blacklisted"
         }
     ]

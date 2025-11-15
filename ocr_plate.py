@@ -5,6 +5,8 @@ from paddleocr import PaddleOCR
 from json_ import process_json_data
 import numpy as np
 import time
+from auth_checker import check_plate_authorization
+
 # ---------------- CONFIG ----------------
 MIN_SIZE = 640
 
@@ -126,9 +128,14 @@ def plate_ocr(raw_img_path=None):
 
                     for i, res in enumerate(result):
                         try:
-                            format_data=process_json_data(res)
-                            # return format_data
-                            print(format_data)
+                            format_data = process_json_data(res)
+
+                            auth_status = check_plate_authorization(format_data)
+
+                            print("OCR Result:", format_data)
+                            print("Authorization:", auth_status.upper())
+                            print("-" * 40)
+
                             
                             # Also print number plate text
                         except Exception as e:
