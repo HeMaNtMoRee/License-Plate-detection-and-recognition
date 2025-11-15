@@ -5,6 +5,34 @@ from typing import Dict, Optional, Any, List, Tuple
 from difflib import SequenceMatcher, get_close_matches
 from datetime import datetime
 
+# ---------------- Log File ----------------
+LOG_FILE = "plate_logs.jsonl"
+
+def log_plate_result(result: dict):
+    """
+    Write a normalized plate result to a log file in JSON format.
+    Result must contain:
+      - license_plate
+      - category
+      - region
+      - number
+      - confidences
+    """
+    now = datetime.now()
+    log_entry = {
+        "date": now.strftime("%Y-%m-%d"),
+        "time": now.strftime("%H:%M:%S"),
+        "license_plate": result.get("license_plate"),
+        "category": result.get("category"),
+        "region": result.get("region"),
+        "number": result.get("number"),
+        "confidences": result.get("confidences", {})
+    }
+
+    # Append safely to .jsonl file (1 record per line)
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+
 # ---------------- Canonical UAE model ----------------
 # Each emirate has canonical name + list of aliases (common OCR variants)
 # + a category validation function (returns True if token is a valid category for that emirate).
@@ -262,7 +290,9 @@ def process_json_data(ocr_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     External entrypoint equivalent to your previous module function name.
     """
-    return format_license_plate(ocr_data)
+    result = format_license_plate(ocr_data)
+    log_plate_result(result)   # <-- log it here
+    return result
 
 
 # ---------------- Example test ----------------
