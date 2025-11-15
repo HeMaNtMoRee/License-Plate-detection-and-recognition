@@ -206,5 +206,11 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# log file
+# Ignore all .jsonl files
 *.jsonl
+
+# Ignore all .log files
+*.log
+
+# Ignore a specific log directory
+logs/
