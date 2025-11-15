@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import tensorflow as tf
 from collections import deque
-from ocr_plate import plate_ocr
+from utils.ocr_plate import plate_ocr
 import threading
 import time
 
