@@ -1,6 +1,0 @@
-{"time": "16:27:18.948594", "result": ["number_plate:", "65.0%", "92868", "A", "DUBAI"]}
-{"time": "16:30:15.975277", "result": ["number_plate:", "60.7%", "92868", "A", "DUBAI"]}
-{"time": "09:06:40.847009", "result": ["number_plate:", "65.1%"]}
-{"time": "09:06:55.105447", "result": ["number_plate:", "85.6%", "", "2", "SHARJAH", "14567", "U.A.E"]}
-{"time": "09:07:16.173483", "result": ["number_plate:", "84.8%", "", "2", "SHARJAH", "14567", "2.", "U.A.E"]}
-{"time": "09:07:31.748528", "result": ["number_plate:", "92.4%", "", "2", "SHARJAH", "14567", "U.A.E"]}

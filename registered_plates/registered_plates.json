@@ -1,0 +1,20 @@
+{
+    "plates":
+    [
+        {
+            "license_plate": "2 Sharjah 14567",
+            "category": "2",
+            "region": "Sharjah", 
+            "number": "14567",
+            "status": "authorized"
+            },
+           
+        {
+            "license_plate": "DD Dubai 50748",
+            "category": "DD",
+            "region": "Dubai",
+            "number": "50748",
+            "status": "blacklisted"
+        }
+    ]
+}
