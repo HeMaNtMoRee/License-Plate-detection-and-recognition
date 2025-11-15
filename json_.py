@@ -288,7 +288,7 @@ def format_license_plate(data: Dict[str, Any]) -> Dict[str, Any]:
 # ---------------- Convenience wrapper ----------------
 def process_json_data(ocr_data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    External entrypoint equivalent to your previous module function name.
+    External entrypoint
     """
     result = format_license_plate(ocr_data)
     log_plate_result(result)   # <-- log it here
