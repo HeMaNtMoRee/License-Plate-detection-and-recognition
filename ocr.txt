@@ -4,3 +4,19 @@
 {"time": "09:06:55.105447", "result": ["number_plate:", "85.6%", "", "2", "SHARJAH", "14567", "U.A.E"]}
 {"time": "09:07:16.173483", "result": ["number_plate:", "84.8%", "", "2", "SHARJAH", "14567", "2.", "U.A.E"]}
 {"time": "09:07:31.748528", "result": ["number_plate:", "92.4%", "", "2", "SHARJAH", "14567", "U.A.E"]}
+{"time": "10:38:36.055791", "result": ["number_plate:", "78.8%"]}
+{"time": "10:38:56.529958", "result": ["number_plate:", "83.5%", "EI", "2", "SHARJAH", "14567", "U.A.E"]}
+{"time": "10:39:17.214413", "result": ["number_plate:", "85.2%", "2", "-", "SHARJAH", "14567", "U.A.E"]}
+{"time": "10:39:55.749460", "result": ["\u3002"]}
+{"time": "10:40:16.974212", "result": ["number_plate:", "86.4%", "SHARJAH", "2", "", "14567", "U.A.E"]}
+{"time": "11:03:27.142991", "result": ["number_plate:", "86.1%", "SHARJAH", "2", "L[", "14567", "U.A.E", "r\u00b7E"]}
+{"time": "11:03:41.889428", "result": ["number_plate:", "89.2%", "", "2", "SHARJAH", "14567", "\u3068", "U.A.E"]}
+{"time": "11:03:52.156966", "result": ["numbar_plate:", "6", "-", "14567"]}
+{"time": "11:04:01.990369", "result": ["number_plate:", "2", "14567"]}
+{"time": "11:04:23.508935", "result": ["number_plate:", "64.1%"]}
+{"time": "11:04:32.948518", "result": ["numbor_plate: 74.7%"]}
+{"time": "11:04:43.311461", "result": ["number", "plate:", "72", "14567"]}
+{"time": "11:04:54.432876", "result": ["number_plate:", "14567"]}
+{"time": "11:05:03.379651", "result": ["number_plate:", "14567"]}
+{"time": "11:05:17.370124", "result": ["number_plate:76.", "SHA", ",", "-", "H", "2", "14567"]}
+{"time": "11:05:28.911813", "result": ["number_plote\uff1a73", "SH\u039bRJAH", "2", "14567", "UAE"]}
