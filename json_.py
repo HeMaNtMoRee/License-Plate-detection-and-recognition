@@ -1,165 +1,286 @@
-import json
+# json_.py
 import re
-from typing import Dict, Optional, Any
-from rapidfuzz import process, fuzz
-from functools import lru_cache
-import time
+import json
+from typing import Dict, Optional, Any, List, Tuple
+from difflib import SequenceMatcher, get_close_matches
 from datetime import datetime
 
-# ---------------- Data Mappings ---------------- #
-UAE_IDENTIFIERS = {
-    # Example filled if needed...
+# ---------------- Canonical UAE model ----------------
+# Each emirate has canonical name + list of aliases (common OCR variants)
+# + a category validation function (returns True if token is a valid category for that emirate).
+UAE_CANONICAL = {
+    "Abu Dhabi": {
+        "aliases": ["ABU DHABI", "ABU-DHABI", "A D", "A.D", "A.D.", "AD"],
+        "category_check": lambda t: t.isdigit() and (t == "1" or 4 <= int(t) <= 21 or t == "50"),
+    },
+    "Dubai": {
+        "aliases": ["DUBAI", "DB", "DXB"],
+        "category_check": lambda t: (t.isalpha() and len(t) <= 2 and t not in {"I", "O", "Q"}) or (t.isdigit() and len(t) <= 2),
+    },
+    "Sharjah": {
+        "aliases": ["SHARJAH", "SHJ", "SH"],
+        "category_check": lambda t: t.isdigit() and 1 <= int(t) <= 5,
+    },
+    "Ajman": {
+        "aliases": ["AJMAN", "AJ"],
+        "category_check": lambda t: t in {"A", "B", "C", "D", "E", "H"},
+    },
+    "Fujairah": {
+        "aliases": ["FUJAIRAH", "FUJ", "FUJARAH", "FUJA"],
+        "category_check": lambda t: t in {"A","B","C","D","E","F","G","K","M","P","R","S","T"},
+    },
+    "Ras Al Khaimah": {
+        "aliases": ["RAS AL KHAIMAH", "RAK", "R.A.K", "R.A.K."],
+        "category_check": lambda t: t in {"A","C","D","I","K","M","N","S","V","Y"},
+    },
+    "Umm Al Quwain": {
+        "aliases": ["UMM AL QUWAIN", "UAQ", "U.A.Q", "U.A.Q."],
+        "category_check": lambda t: t in {"A","B","C","D","E","F","G","H","I","X"},
+    },
 }
 
-UAE_REGIONS_FULL = {
-    "ABU DHABI": "Abu Dhabi",
-    "A.D": "Abu Dhabi",
-    "A.D.": "Abu Dhabi",
-    "AD": "Abu Dhabi",
-    
-    "DUBAI": "Dubai",
-    
-    "SHARJAH": "Sharjah",
-    "SHJ": "Sharjah",
-    
-    "AJMAN": "Ajman",
-    
-    "FUJAIRAH": "Fujairah",
-    "FUJ": "Fujairah",
-    
-    "RAS AL KHAIMAH": "Ras Al Khaimah",
-    "RAK": "Ras Al Khaimah",
-    "R.A.K.": "Ras Al Khaimah",
-    "R.A.K": "Ras Al Khaimah",
-    
-    "UMM AL QUWAIN": "Umm Al Quwain",
-    "UAQ": "Umm Al Quwain",
-    "U.A.Q": "Umm Al Quwain",
-    "U.A.Q.": "Umm Al Quwain"
+# Flatten alias -> canonical mapping for quick exact matching
+_ALIAS_TO_REGION = {}
+for region, info in UAE_CANONICAL.items():
+    for alias in info["aliases"]:
+        cleaned = re.sub(r'\s+|\.', '', alias).upper()
+        _ALIAS_TO_REGION[cleaned] = region
 
-}
+# ---------------- Utility functions ----------------
+def now_iso_time() -> str:
+    return datetime.now().isoformat()
 
-# import json
-# from datetime import datetime
-# from typing import Dict, Any, Optional
+def normalize_token(tok: str) -> str:
+    """Uppercase, strip, collapse whitespace."""
+    return re.sub(r'\s+', ' ', (tok or "").strip()).upper()
 
+def clean_alias_form(tok: str) -> str:
+    """Alias canonicalization used for quick alias lookup (remove dots/spaces)."""
+    return re.sub(r'\s+|\.', '', normalize_token(tok))
 
+def digits_only(s: str) -> Optional[str]:
+    if s is None:
+        return None
+    s = re.sub(r'\D', '', s)
+    return s if s else None
 
+def similar(a: str, b: str) -> float:
+    if not a or not b:
+        return 0.0
+    return SequenceMatcher(None, a, b).ratio()
 
-def text_(data: Dict[str, Any]):
-    try:
-        
-        current_datetime = datetime.now()
-        current_time = current_datetime.time()
-        
-        ocr_text=data.get("rec_texts", [])
-        print(ocr_text)
-        with open("ocr.txt", 'a') as f:
-            # f.write(json.dumps({"time": current_time, "result": ocr_text}) + "\n")
-            f.write(json.dumps({"time": current_time.isoformat(), "result": ocr_text}) + "\n")
+# ---------------- Tokenization & OCR helpers ----------------
+SPLIT_RE = re.compile(r"[,\-_/\\\|\:\;\(\)\[\]]+")  # split on common separators
 
-    except Exception as e:
-        print(e)
-        
-    
-
-
-def format_license_plate(data: Dict[str, Any]) -> Dict[str, Optional[str]]:
-    """Extracts and formats UAE license plate data from OCR result (optimized)."""
-    # print("heeeeeeeeeee")
-    
-    valid_region= ["A.D",'A.D.','U.A.Q','U.A.Q.',"R.A.K.","R.A.K",]
-    
-    text_(data)
-    print("fff")
-    rec_texts = [
-        part
-        for t in data.get("rec_texts", [])
-        if isinstance(t, str) and t.strip()
-        for word in t.strip().upper().split()
-        for part in (
-            (
-                # --- Autocorrect inline ---
-                (lambda token: (
-                    (lambda token_clean: (
-                        token_clean if token_clean in UAE_REGIONS_FULL 
-                        else (
-                            lambda match, score,_: match if score >= 70 else token
-                        )(*process.extractOne(token_clean, UAE_REGIONS_FULL.values(), scorer=fuzz.token_sort_ratio))
-                    ))(token.strip().title())
-                ))(word)
-            ).upper()
-            ,
-        )  # wrap into tuple so we can reuse below
-        for part in (
-            [part]  # case: abbreviation like U.A.E
-            if re.match(r"^([A-ZΑ-ΩΡ]\.){2,}[A-Z0-9]*$", part)
-            else [p for p in part.split(".") if p]   # case: dot split (except A.D)
-                if "." in part and part not in valid_region
-            else list(re.match(r"^([A-Z]+)(\d+)$", part).groups())  # case: alphanum split
-                if re.match(r"^([A-Z]+)(\d+)$", part)
-            else [part]  # default
-        )
-        if part
-    ]
-    
-    
-    # rec_texts=[]
-    # for i in record:
-    #     if i.startswith('UAE'):
-    #         aa,b,c=i.partition('UAE')
-    #         rec_texts.append([b,c])
-    #     else:
-    #         rec_texts.append(i)    
-
-    print("Texts:", rec_texts)
-    # print(data.get("rec_scores", []))
-
-    region_name, number, category = None, None, None
-    max_len = 0
-
-    # Single loop → extract region, number, and potential category
-    for text in rec_texts:
-        if not region_name and text in UAE_REGIONS_FULL:
-            region_name = UAE_REGIONS_FULL[text]
-
-        if re.fullmatch(r"\d{1,5}", text):  # number candidate
-            if len(text) >= max_len:
-                number, max_len = text, len(text)
-
-    if region_name and not category:
-        # category = extract_category(rec_texts, region_name, number)
-        for text in rec_texts:
-            if text == number:
+def tokenize_rec_texts(rec_texts: List[str]) -> List[str]:
+    """
+    Robust token extraction from raw OCR strings.
+    Keeps alpha, digits, dotted abbreviations (U.A.Q), and alnum combinations.
+    """
+    tokens: List[str] = []
+    for t in rec_texts:
+        if not isinstance(t, str):
+            continue
+        s = t.strip()
+        if not s:
+            continue
+        # Split on whitespace first, then further split on punctuation while keeping dotted groups
+        parts = []
+        for part in s.split():
+            # preserve dotted abbreviations like U.A.Q or R.A.K.
+            if re.fullmatch(r'([A-Za-z]\.){1,4}[A-Za-z]?', part):
+                parts.append(part)
                 continue
-            if region_name == "Abu Dhabi" and (text == "AD" or (text.isdigit() and (text == "1" or 4 <= int(text) <= 21 or text == "50"))):
-                category= text
-            if region_name == "Dubai" and (re.fullmatch(r"[A-Z]", text) or (text in ["AA", "BB", "CC", "DD"])) and text not in {"I", "O", "Q"}:
-                category= text
-            if region_name == "Sharjah" and text.isdigit() and 1 <= int(text) <= 5:
-                category= text
-            if region_name == "Ajman" and text in {"A", "B", "C", "D", "E", "H"}:
-                category= text
-            if region_name == "Ras Al Khaimah" and text in {"A", "C", "D", "I", "K", "M", "N", "S", "V", "Y"}:
-                category= text
-            if region_name == "Fujairah" and text in {"A", "B", "C", "D", "E", "F", "G", "K", "M", "P", "R", "S", "T"}:
-                category= text
-            if region_name == "Umm Al Quwain" and text in {"A", "B", "C", "D", "E", "F", "G", "H", "I", "X"}:
-                category= text
+            # split on separators but keep alnum blocks together (e.g., AB123)
+            subparts = [p for seg in SPLIT_RE.split(part) for p in seg.split('.') if p]
+            parts.extend([p for p in subparts if p])
+        for p in parts:
+            pnorm = normalize_token(p)
+            if pnorm:
+                tokens.append(pnorm)
+    return tokens
 
+# ---------------- Region detection ----------------
+def detect_region_from_tokens(tokens: List[str]) -> Tuple[Optional[str], float]:
+    """
+    Returns (region_name or None, confidence 0..1)
+    Strategy:
+    1) Exact alias match (very high confidence)
+    2) Clean alias exact match (remove dots/spaces)
+    3) Fuzzy match among aliases using difflib (fallback)
+    """
+    if not tokens:
+        return None, 0.0
+
+    # exact alias token
+    for tok in tokens:
+        tok_clean = clean_alias_form(tok)
+        if tok_clean in _ALIAS_TO_REGION:
+            return _ALIAS_TO_REGION[tok_clean], 0.99
+
+    # try fuzzy across all alias strings
+    # build a candidate list of cleaned aliases
+    alias_list = list(_ALIAS_TO_REGION.keys())
+    # join tokens to single string to catch phrases like "RAS AL KHAIMAH"
+    joined = " ".join(tokens)
+    joined_clean = clean_alias_form(joined)
+    matches = get_close_matches(joined_clean, alias_list, n=1, cutoff=0.7)
+    if matches:
+        score = similar(joined_clean, matches[0])
+        return _ALIAS_TO_REGION[matches[0]], score
+
+    # try token-level fuzzy matches (best token wins)
+    best_region, best_score = None, 0.0
+    for tok in tokens:
+        tok_clean = clean_alias_form(tok)
+        matches = get_close_matches(tok_clean, alias_list, n=1, cutoff=0.6)
+        if matches:
+            score = similar(tok_clean, matches[0])
+            if score > best_score:
+                best_score = score
+                best_region = _ALIAS_TO_REGION[matches[0]]
+    if best_region:
+        return best_region, best_score
+
+    return None, 0.0
+
+# ---------------- Category extraction ----------------
+def detect_category_for_region(region: str, tokens: List[str]) -> Tuple[Optional[str], float]:
+    """
+    Try to find a token that fits the category rules for the detected region.
+    Returns (category or None, confidence)
+    Confidence is heuristic: exact matches -> 0.95, fuzzy or digit heuristics lower.
+    """
+    if not region or not tokens:
+        return None, 0.0
+    checker = UAE_CANONICAL.get(region, {}).get("category_check")
+    if not checker:
+        return None, 0.0
+
+    # Prefer tokens that are short (1-2 chars) and match the rule
+    best_tok, best_conf = None, 0.0
+    for tok in tokens:
+        # ignore plain numerical sequences longer than 5 (likely the plate number)
+        if tok.isdigit() and len(tok) > 5:
+            continue
+        try:
+            if checker(tok):
+                # prefer letter categories slightly higher than numeric ones (heuristic)
+                conf = 0.95 if tok.isalpha() else 0.9
+                # If same length as known category patterns, bump confidence slightly
+                if len(tok) <= 2:
+                    conf += 0.02
+                if conf > best_conf:
+                    best_conf = conf
+                    best_tok = tok
+        except Exception:
+            continue
+
+    # As fallback: if no category token found but region has known numeric ranges (e.g., Abu Dhabi),
+    # try to infer category if a short numeric token appears that fits the numeric rule.
+    return (best_tok, best_conf) if best_tok else (None, 0.0)
+
+# ---------------- Number extraction ----------------
+def detect_number(tokens: List[str]) -> Tuple[Optional[str], float]:
+    """
+    Extract the plate's numeric part. Heuristics:
+    - prefer longest contiguous digit token (1-5 digits)
+    - if token contains letters+digits (e.g., 'AB123'), extract digits
+    - return confidence based on token length and purity
+    """
+    if not tokens:
+        return None, 0.0
+
+    best_num, best_conf = None, 0.0
+    for tok in tokens:
+        digits = digits_only(tok) or ""
+        if not digits:
+            continue
+        # only accept up to 5 digits for UAE common plates
+        if 1 <= len(digits) <= 5:
+            # longer digit sequences get slightly better confidence
+            conf = 0.6 + (len(digits)/5)*0.35  # range roughly 0.6..0.95
+            # if token was pure digits, bump confidence
+            if tok.isdigit():
+                conf += 0.03
+            if conf > best_conf:
+                best_conf = min(conf, 0.99)
+                best_num = digits
+    return (best_num, best_conf) if best_num else (None, 0.0)
+
+# ---------------- Main formatting function ----------------
+def format_license_plate(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Input: { "rec_texts": [...], "rec_scores": [...] }
+    Output: normalized dict with license_plate, category, region, number, confidences
+    """
+    raw_texts = data.get("rec_texts", [])
+    raw_scores = data.get("rec_scores", [])
+    # Print raw OCR texts and scores
+    # print(json.dumps({"time": now_iso_time(), "rec_texts": raw_texts, "rec_scores": raw_scores}, ensure_ascii=False))
+
+    tokens = tokenize_rec_texts(raw_texts)
+
+    region, region_conf = detect_region_from_tokens(tokens)
+    number, number_conf = detect_number(tokens)
+    category, category_conf = detect_category_for_region(region, tokens) if region else (None, 0.0)
+
+    # If category missing but region is detected and number exists, attempt region-specific heuristics
+    if not category and region:
+        # Abu Dhabi sometimes encodes category as small numeric tokens near number; check short numeric tokens
+        if region == "Abu Dhabi":
+            for tok in tokens:
+                if tok.isdigit() and len(tok) <= 2:
+                    # test category rule
+                    if UAE_CANONICAL[region]['category_check'](tok):
+                        category, category_conf = tok, 0.75
+                        break
+
+    # Compose license_plate string in canonical casing
     license_plate = None
-    if category and region_name and number:
-        license_plate = f"{category} {region_name} {number}"
-    elif region_name and number:
-        license_plate = f"{region_name} {number}"
+    if category and region and number:
+        license_plate = f"{category} {region} {number}"
+    elif region and number:
+        license_plate = f"{region} {number}"
 
-    return {"license plate": license_plate, "category": category, "region": region_name, "number": number}
+    # ensure normalized outputs
+    out = {
+        "license_plate": license_plate,
+        "category": category,
+        "region": region,
+        "number": number,
+        "confidences": {
+            "region": round(region_conf, 3),
+            "category": round(category_conf, 3),
+            "number": round(number_conf, 3),
+        }
+    }
+    return out
+
+# ---------------- Convenience wrapper ----------------
+def process_json_data(ocr_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    External entrypoint equivalent to your previous module function name.
+    """
+    return format_license_plate(ocr_data)
 
 
+# ---------------- Example test ----------------
+# if __name__ == "__main__":
+#     # Example messy OCR inputs for manual testing
+#     samples = [
+#         {"rec_texts": ["Sharjah", "14567", "2"], "rec_scores": [0.92, 0.99, 0.60]},
+#         {"rec_texts": ["S H A R J A H", "1 4 5 6 7"], "rec_scores": [0.80, 0.85]},
+#         {"rec_texts": ["R.A.K.", "A", "983"], "rec_scores": [0.88, 0.7, 0.9]},
+#         {"rec_texts": ["AD", "50", "123"], "rec_scores": [0.95, 0.6, 0.99]},
+#         {"rec_texts": ["DUBAI", "AA", "9876"], "rec_scores": [0.96, 0.8, 0.97]},
+#         {"rec_texts": ["UNKNOWN", "12"], "rec_scores": [0.4, 0.5]},
+#         {"rec_texts": ["Sharjah14567"], "rec_scores": [0.9]},
+#         {"rec_texts": ["SHJ", "14567"], "rec_scores": [0.7, 0.92]},
+#     ]
 
-def process_json_data(ocr_data: dict) -> Dict[str, Optional[str]]:
-    result = format_license_plate(ocr_data)
-    
-    return result
-
-
+#     for s in samples:
+#         print("INPUT:", s["rec_texts"])
+#         out = process_json_data(s)
+#         print("OUTPUT:", json.dumps(out, ensure_ascii=False))
+#         print("-" * 50)
