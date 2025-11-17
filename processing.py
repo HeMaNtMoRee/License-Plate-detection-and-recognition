@@ -5,7 +5,7 @@ from datetime import datetime
 from PIL import Image, UnidentifiedImageError
 import traceback
 
-# Import the components from your existing utils
+# Import the components from utils
 try:
     from utils.ocr_plate import resize_image_keep_aspect, ocr
     from utils.json_ import process_json_data
@@ -85,8 +85,6 @@ def extract_data_from_image(image_path: str) -> dict:
         return {"error": f"OCR extraction failed: {e}"}
 
 
-# --- REFACTORED HELPER FUNCTIONS ---
-
 def _read_plates_db() -> dict:
     """Reads the registered_plates.json file and returns its content."""
     data = {"plates": []}
@@ -111,7 +109,6 @@ def _write_plates_db(data: dict):
     except Exception as e:
         print(f"[ERROR] Failed to write to {REGISTERED_PLATES_FILE}: {e}")
 
-# --- UPDATED FUNCTION ---
 
 def update_registered_plates(plate_data: dict, status: str):
     """
@@ -133,8 +130,6 @@ def update_registered_plates(plate_data: dict, status: str):
     # 4. Write the file back
     _write_plates_db(data)
 
-
-# --- NEW FUNCTION ---
 
 def add_plates_from_json_file(json_file_path: str, status: str) -> dict:
     """

@@ -6,48 +6,6 @@
             "region": "Sharjah",
             "number": "14567",
             "status": "authorized"
-        },
-        {
-            "license_plate": "DD Dubai 50748",
-            "category": "DD",
-            "region": "Dubai",
-            "number": "50748",
-            "status": "blacklisted"
-        },
-        {
-            "license_plate": "13 Abu Dhabi 111",
-            "category": "13",
-            "region": "Abu Dhabi",
-            "number": "111",
-            "status": "authorized"
-        },
-        {
-            "license_plate": "11 Abu Dhabi 11020",
-            "category": "11",
-            "region": "Abu Dhabi",
-            "number": "11020",
-            "status": "authorized"
-        },
-        {
-            "license_plate": "12 Abu Dhabi 12220",
-            "category": "12",
-            "region": "Abu Dhabi",
-            "number": "12220",
-            "status": "blacklisted"
-        },
-        {
-            "license_plate": "U Dubai 60096",
-            "category": "U",
-            "region": "Dubai",
-            "number": "60096",
-            "status": "blacklisted"
-        },
-        {
-            "license_plate": "P Dubai 12034",
-            "category": "P",
-            "region": "Dubai",
-            "number": "12034",
-            "status": "blacklisted"
         }
     ]
 }
