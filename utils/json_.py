@@ -281,11 +281,11 @@ def format_license_plate(data: Dict[str, Any]) -> Dict[str, Any]:
         "category": category,
         "region": region,
         "number": number,
-        "confidences": {
-            "region": round(region_conf, 3),
-            "category": round(category_conf, 3),
-            "number": round(number_conf, 3),
-        }
+        # "confidences": {
+        #     "region": round(region_conf, 3),
+        #     "category": round(category_conf, 3),
+        #     "number": round(number_conf, 3),
+        # }
     }
     return out
 
