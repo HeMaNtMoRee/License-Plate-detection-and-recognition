@@ -34,6 +34,13 @@
             "region": "Abu Dhabi",
             "number": "12220",
             "status": "blacklisted"
+        },
+        {
+            "license_plate": "U Dubai 60096",
+            "category": "U",
+            "region": "Dubai",
+            "number": "60096",
+            "status": "blacklisted"
         }
     ]
 }

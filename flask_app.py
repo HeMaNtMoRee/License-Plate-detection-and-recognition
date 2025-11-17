@@ -4,14 +4,16 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
 
 # Import the new processing functions
-from processing import log_upload_event, extract_data_from_image, update_registered_plates
+# --- UPDATED IMPORT ---
+from processing import log_upload_event, extract_data_from_image, update_registered_plates, add_plates_from_json_file
 
 # --- Configuration ---
 UPLOAD_FOLDERS = {
     'authorized': os.path.join('license_plates', 'authorized'),
     'blacklisted': os.path.join('license_plates', 'blacklisted')
 }
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'bmp'}
+# --- UPDATED ALLOWED EXTENSIONS ---
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'bmp', 'json'}
 
 app = Flask(__name__)
 app.secret_key = 'your_super_secret_key' # Change this for production
@@ -65,21 +67,40 @@ def upload_file():
         # 4. Log the upload event (Task 1)
         log_upload_event(filename, upload_type)
 
-        # 5. Extract OCR data (Task 2)
-        ocr_result = extract_data_from_image(save_path)
+        # --- NEW LOGIC: Handle Image vs JSON ---
+        file_ext = filename.rsplit('.', 1)[1].lower()
+        result = None # To store result from processing
 
-        # 6. Update registered_plates.json (Task 3)
-        if "error" not in ocr_result:
-            update_registered_plates(ocr_result, upload_type)
-        
+        if file_ext in {'png', 'jpg', 'jpeg', 'bmp'}:
+            # --- IMAGE PROCESSING (Original Logic) ---
+            
+            # 5. Extract OCR data (Task 2)
+            result = extract_data_from_image(save_path)
+
+            # 6. Update registered_plates.json (Task 3)
+            if "error" not in result:
+                update_registered_plates(result, upload_type)
+            
+            flash(f'File "{filename}" uploaded to "{upload_type}".')
+
+        elif file_ext == 'json':
+            # --- JSON PROCESSING (New Logic) ---
+            
+            # 5. Process JSON file and add to master list
+            result = add_plates_from_json_file(save_path, upload_type)
+            
+            # 6. Flash success or error
+            if "error" in result:
+                flash(f'Error processing {filename}: {result["error"]}')
+            else:
+                flash(f'Successfully added plates from {filename} to "{upload_type}".')
+
         # 7. Render the page again, showing the result (Task 4)
-        flash(f'File "{filename}" uploaded to "{upload_type}".')
-        
-        # Pass the ocr_result to the template
-        return render_template('index.html', ocr_result=ocr_result)
+        return render_template('index.html', ocr_result=result)
 
     else:
-        flash('Invalid file type. Allowed types: png, jpg, jpeg, bmp')
+        # --- UPDATED ERROR MESSAGE ---
+        flash('Invalid file type. Allowed types: png, jpg, jpeg, bmp, json')
         return redirect(request.url)
 
 

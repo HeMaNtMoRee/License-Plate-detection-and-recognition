@@ -1,0 +1,11 @@
+{ 
+    "plates": 
+    [
+        {
+            "license_plate": "U Dubai 60096",
+            "category": "U",
+            "region": "Dubai",
+            "number": "60096"
+        }
+    ]
+}

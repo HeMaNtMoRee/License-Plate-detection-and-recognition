@@ -18,6 +18,8 @@ UPLOAD_LOG_FILE = os.path.join('logs', 'upload_events.jsonl')
 
 # Ensure log directory exists
 os.makedirs('logs', exist_ok=True)
+# Ensure registered_plates directory exists
+os.makedirs('registered_plates', exist_ok=True)
 
 
 def log_upload_event(filename: str, upload_type: str):
@@ -58,7 +60,6 @@ def extract_data_from_image(image_path: str) -> dict:
             image_np = np.stack([image_np] * 3, axis=-1)
 
         # 3. Run OCR prediction (reusing your global ocr object)
-        # We expect one result for the cropped plate
         result = ocr.predict(image_np)
         
         if not result or not result[0]:
@@ -66,15 +67,10 @@ def extract_data_from_image(image_path: str) -> dict:
             return {"error": "OCR could not detect text."}
 
         # 4. Process the result (reusing your json_ util)
-        # result is like [[(box, (text, score))], ...]
-        # We pass the first detected text block to process_json_data
-        
-        # Extract rec_texts and rec_scores for process_json_data
         ocr_data = {
             "rec_texts": result[0]["rec_texts"],
             "rec_scores": [result[0]['rec_scores']]
         }
-
 
         formatted_data = process_json_data(ocr_data)
         print(f"[INFO] OCR Result: {formatted_data}")
@@ -89,9 +85,37 @@ def extract_data_from_image(image_path: str) -> dict:
         return {"error": f"OCR extraction failed: {e}"}
 
 
+# --- REFACTORED HELPER FUNCTIONS ---
+
+def _read_plates_db() -> dict:
+    """Reads the registered_plates.json file and returns its content."""
+    data = {"plates": []}
+    try:
+        if os.path.exists(REGISTERED_PLATES_FILE):
+            with open(REGISTERED_PLATES_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                if "plates" not in data or not isinstance(data["plates"], list):
+                    print(f"[WARN] 'plates' key missing or not a list in {REGISTERED_PLATES_FILE}. Resetting.")
+                    data = {"plates": []}
+    except json.JSONDecodeError:
+        print(f"[WARN] {REGISTERED_PLATES_FILE} is corrupted. Creating a new one.")
+        data = {"plates": []}
+    return data
+
+def _write_plates_db(data: dict):
+    """Writes the data object back to registered_plates.json."""
+    try:
+        with open(REGISTERED_PLATES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=4)
+        print(f"[INFO] Successfully updated {REGISTERED_PLATES_FILE}.")
+    except Exception as e:
+        print(f"[ERROR] Failed to write to {REGISTERED_PLATES_FILE}: {e}")
+
+# --- UPDATED FUNCTION ---
+
 def update_registered_plates(plate_data: dict, status: str):
     """
-    Adds the new plate data to registered_plates.json with the given status.
+    Adds a SINGLE new plate data to registered_plates.json with the given status.
     """
     if not plate_data.get("license_plate"):
         print("[WARN] No license_plate data found, skipping update.")
@@ -101,24 +125,59 @@ def update_registered_plates(plate_data: dict, status: str):
     plate_data["status"] = status
     
     # 2. Read the existing data
-    data = {"plates": []}
-    try:
-        if os.path.exists(REGISTERED_PLATES_FILE):
-            with open(REGISTERED_PLATES_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                if "plates" not in data:
-                    data = {"plates": []}
-    except json.JSONDecodeError:
-        print(f"[WARN] {REGISTERED_PLATES_FILE} is corrupted. Creating a new one.")
-        data = {"plates": []}
+    data = _read_plates_db()
 
     # 3. Append the new plate data
     data["plates"].append(plate_data)
 
     # 4. Write the file back
+    _write_plates_db(data)
+
+
+# --- NEW FUNCTION ---
+
+def add_plates_from_json_file(json_file_path: str, status: str) -> dict:
+    """
+    Reads a JSON file containing a list of plates and adds them to
+    registered_plates.json with the given status.
+    """
     try:
-        with open(REGISTERED_PLATES_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=4)
-        print(f"[INFO] Successfully updated {REGISTERED_PLATES_FILE}.")
+        # 1. Read the UPLOADED JSON file
+        with open(json_file_path, 'r', encoding='utf-8') as f:
+            new_data = json.load(f)
+    except json.JSONDecodeError:
+        return {"error": "Uploaded file is not a valid JSON."}
     except Exception as e:
-        print(f"[ERROR] Failed to write to {REGISTERED_PLATES_FILE}: {e}")
+        return {"error": f"Failed to read uploaded file: {e}"}
+
+    # 2. Determine if the JSON is a list or a dict with a 'plates' key
+    new_plates_list = []
+    if isinstance(new_data, list):
+        new_plates_list = new_data
+    elif isinstance(new_data, dict) and "plates" in new_data:
+        new_plates_list = new_data["plates"]
+    else:
+        return {"error": "JSON format not recognized. Expected a list of plates, or a dictionary like {'plates': [...] }."}
+
+    if not new_plates_list:
+        return {"info": "No plates found in the JSON file."}
+
+    # 3. Read the master database
+    master_data = _read_plates_db()
+
+    # 4. Process and append new plates
+    count = 0
+    for plate_entry in new_plates_list:
+        if isinstance(plate_entry, dict) and plate_entry.get("license_plate"):
+            plate_entry["status"] = status  # Set the status
+            master_data["plates"].append(plate_entry)
+            count += 1
+        else:
+            print(f"[WARN] Skipping invalid entry in JSON: {plate_entry}")
+
+    # 5. Write back to the master database ONCE
+    _write_plates_db(master_data)
+    
+    success_message = f"Successfully added {count} plates."
+    print(f"[INFO] {success_message} from {json_file_path}")
+    return {"success": success_message}
