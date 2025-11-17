@@ -295,26 +295,4 @@ def process_json_data(ocr_data: Dict[str, Any]) -> Dict[str, Any]:
     External entrypoint
     """
     result = format_license_plate(ocr_data)
-    log_plate_result(result)   # <-- log it here
     return result
-
-
-# ---------------- Example test ----------------
-# if __name__ == "__main__":
-#     # Example messy OCR inputs for manual testing
-#     samples = [
-#         {"rec_texts": ["Sharjah", "14567", "2"], "rec_scores": [0.92, 0.99, 0.60]},
-#         {"rec_texts": ["S H A R J A H", "1 4 5 6 7"], "rec_scores": [0.80, 0.85]},
-#         {"rec_texts": ["R.A.K.", "A", "983"], "rec_scores": [0.88, 0.7, 0.9]},
-#         {"rec_texts": ["AD", "50", "123"], "rec_scores": [0.95, 0.6, 0.99]},
-#         {"rec_texts": ["DUBAI", "AA", "9876"], "rec_scores": [0.96, 0.8, 0.97]},
-#         {"rec_texts": ["UNKNOWN", "12"], "rec_scores": [0.4, 0.5]},
-#         {"rec_texts": ["Sharjah14567"], "rec_scores": [0.9]},
-#         {"rec_texts": ["SHJ", "14567"], "rec_scores": [0.7, 0.92]},
-#     ]
-
-#     for s in samples:
-#         print("INPUT:", s["rec_texts"])
-#         out = process_json_data(s)
-#         print("OUTPUT:", json.dumps(out, ensure_ascii=False))
-#         print("-" * 50)
