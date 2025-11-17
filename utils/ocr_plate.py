@@ -2,7 +2,7 @@ import os
 import traceback
 from PIL import Image, UnidentifiedImageError
 from paddleocr import PaddleOCR
-from utils.json_ import process_json_data
+from utils.json_ import process_json_data, log_plate_result
 import numpy as np
 import time
 from utils.auth_checker import check_plate_authorization
@@ -76,6 +76,7 @@ def plate_ocr(raw_img_path=None):
                         try:
                             format_data = process_json_data(res)
                             auth_status = check_plate_authorization(format_data)
+                            log_plate_result(format_data, auth_status)
 
                             print("OCR Result:", format_data)
                             print("Authorization:", auth_status.upper())

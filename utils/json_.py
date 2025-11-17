@@ -12,7 +12,7 @@ log_path = os.path.join(cwd_path, "logs")
 os.makedirs(log_path, exist_ok=True)
 LOG_FILE = "logs/plate_logs.jsonl"
 
-def log_plate_result(result: dict):
+def log_plate_result(result: dict, status: str): # <-- MODIFICATION 1: Added 'status' argument
     """
     Write a normalized plate result to a log file in JSON format.
     Result must contain:
@@ -30,7 +30,7 @@ def log_plate_result(result: dict):
         "category": result.get("category"),
         "region": result.get("region"),
         "number": result.get("number"),
-        "confidences": result.get("confidences", {})
+        "status": status  # <-- MODIFICATION 2: Added 'status' to the log entry
     }
 
     # Append safely to .jsonl file (1 record per line)

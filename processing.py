@@ -27,8 +27,10 @@ def log_upload_event(filename: str, upload_type: str):
     Writes a log of the file upload event to upload_events.jsonl.
     """
     try:
+        now = datetime.now()
         log_entry = {
-            "timestamp": datetime.now().isoformat(),
+            "date": now.strftime("%Y-%m-%d"),
+            "time": now.strftime("%H:%M:%S"),
             "filename": filename,
             "upload_type": upload_type
         }
