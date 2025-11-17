@@ -41,6 +41,13 @@
             "region": "Dubai",
             "number": "60096",
             "status": "blacklisted"
+        },
+        {
+            "license_plate": "P Dubai 12034",
+            "category": "P",
+            "region": "Dubai",
+            "number": "12034",
+            "status": "blacklisted"
         }
     ]
 }
