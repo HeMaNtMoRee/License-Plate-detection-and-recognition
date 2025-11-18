@@ -1,18 +1,5 @@
 {
     "plates": [
-        {
-            "license_plate": "2 Sharjah 14567",
-            "category": "2",
-            "region": "Sharjah",
-            "number": "14567",
-            "status": "authorized"
-        },
-        {
-            "license_plate": "B Ajman 12345",
-            "category": "B",
-            "region": "Ajman",
-            "number": "12345",
-            "status": "blacklisted"
-        }
+       
     ]
 }
