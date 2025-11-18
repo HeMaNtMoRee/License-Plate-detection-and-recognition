@@ -1,0 +1,11 @@
+{ 
+    "plates": 
+    [
+        {
+            "license_plate": "B Ajman 12345",
+            "category": "B",
+            "region": "Ajman",
+            "number": "12345"
+        }
+        ]
+}

@@ -12,7 +12,7 @@ log_path = os.path.join(cwd_path, "logs")
 os.makedirs(log_path, exist_ok=True)
 LOG_FILE = "logs/plate_logs.jsonl"
 
-def log_plate_result(result: dict, status: str): # <-- MODIFICATION 1: Added 'status' argument
+def log_plate_result(result: dict, status: str):
     """
     Write a normalized plate result to a log file in JSON format.
     Result must contain:
@@ -30,7 +30,7 @@ def log_plate_result(result: dict, status: str): # <-- MODIFICATION 1: Added 'st
         "category": result.get("category"),
         "region": result.get("region"),
         "number": result.get("number"),
-        "status": status  # <-- MODIFICATION 2: Added 'status' to the log entry
+        "status": status
     }
 
     # Append safely to .jsonl file (1 record per line)
@@ -79,8 +79,6 @@ for region, info in UAE_CANONICAL.items():
         _ALIAS_TO_REGION[cleaned] = region
 
 # ---------------- Utility functions ----------------
-def now_iso_time() -> str:
-    return datetime.now().isoformat()
 
 def normalize_token(tok: str) -> str:
     """Uppercase, strip, collapse whitespace."""
@@ -89,12 +87,6 @@ def normalize_token(tok: str) -> str:
 def clean_alias_form(tok: str) -> str:
     """Alias canonicalization used for quick alias lookup (remove dots/spaces)."""
     return re.sub(r'\s+|\.', '', normalize_token(tok))
-
-def digits_only(s: str) -> Optional[str]:
-    if s is None:
-        return None
-    s = re.sub(r'\D', '', s)
-    return s if s else None
 
 def similar(a: str, b: str) -> float:
     if not a or not b:
@@ -215,29 +207,48 @@ def detect_category_for_region(region: str, tokens: List[str]) -> Tuple[Optional
 # ---------------- Number extraction ----------------
 def detect_number(tokens: List[str]) -> Tuple[Optional[str], float]:
     """
-    Extract the plate's numeric part. Heuristics:
-    - prefer longest contiguous digit token (1-5 digits)
-    - if token contains letters+digits (e.g., 'AB123'), extract digits
+    Extract the plate's number part (can be numeric or alphanumeric). Heuristics:
+    - prefer longest token (1-6 chars) that is alphanumeric and contains at least one digit.
+    - e.g., '12345', 'A1234', 'AB123' are all valid.
+    - pure digit tokens are given a slight confidence boost.
     - return confidence based on token length and purity
     """
     if not tokens:
         return None, 0.0
 
     best_num, best_conf = None, 0.0
+    # Max length for a plate number, increased to 6 to allow for alnum
+    MAX_NUM_LENGTH = 6 
+
     for tok in tokens:
-        digits = digits_only(tok) or ""
-        if not digits:
+        # Check 1: Must be alphanumeric
+        if not tok.isalnum():
             continue
-        # only accept up to 5 digits for UAE common plates
-        if 1 <= len(digits) <= 5:
-            # longer digit sequences get slightly better confidence
-            conf = 0.6 + (len(digits)/5)*0.35  # range roughly 0.6..0.95
-            # if token was pure digits, bump confidence
-            if tok.isdigit():
-                conf += 0.03
-            if conf > best_conf:
-                best_conf = min(conf, 0.99)
-                best_num = digits
+            
+        # Check 2: Must be within reasonable length
+        if not (1 <= len(tok) <= MAX_NUM_LENGTH):
+            continue
+            
+        # Check 3: Must contain at least one digit
+        # This distinguishes it from pure-letter tokens (like region or category)
+        if not any(char.isdigit() for char in tok):
+            continue
+
+        # --- This token is a valid candidate ---
+        
+        # Confidence logic:
+        # longer sequences get better confidence
+        conf = 0.6 + (len(tok) / MAX_NUM_LENGTH) * 0.35  # range roughly 0.6..0.95
+        
+        # if token was pure digits, bump confidence (still a good heuristic)
+        if tok.isdigit():
+            conf += 0.03
+            
+        # Update if this is the best candidate so far
+        if conf > best_conf:
+            best_conf = min(conf, 0.99)
+            best_num = tok # Store the whole alphanumeric token
+            
     return (best_num, best_conf) if best_num else (None, 0.0)
 
 # ---------------- Main formatting function ----------------
@@ -247,12 +258,7 @@ def format_license_plate(data: Dict[str, Any]) -> Dict[str, Any]:
     Output: normalized dict with license_plate, category, region, number, confidences
     """
     raw_texts = data.get("rec_texts", [])
-    raw_scores = data.get("rec_scores", [])
-    # Print raw OCR texts and scores
-    # print(json.dumps({"time": now_iso_time(), "rec_texts": raw_texts, "rec_scores": raw_scores}, ensure_ascii=False))
-
     tokens = tokenize_rec_texts(raw_texts)
-
     region, region_conf = detect_region_from_tokens(tokens)
     number, number_conf = detect_number(tokens)
     category, category_conf = detect_category_for_region(region, tokens) if region else (None, 0.0)

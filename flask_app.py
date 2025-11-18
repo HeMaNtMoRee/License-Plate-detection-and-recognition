@@ -2,17 +2,14 @@ import os
 import json
 from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-
-# Import the new processing functions
-# --- UPDATED IMPORT ---
-from processing import log_upload_event, extract_data_from_image, update_registered_plates, add_plates_from_json_file
+from utils.processing import log_upload_event, extract_data_from_image, update_registered_plates, add_plates_from_json_file
 
 # --- Configuration ---
 UPLOAD_FOLDERS = {
     'authorized': os.path.join('license_plates', 'authorized'),
     'blacklisted': os.path.join('license_plates', 'blacklisted')
 }
-# --- UPDATED ALLOWED EXTENSIONS ---
+# --- ALLOWED EXTENSIONS ---
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'bmp', 'json'}
 
 app = Flask(__name__)
@@ -67,7 +64,7 @@ def upload_file():
         # 4. Log the upload event (Task 1)
         log_upload_event(filename, upload_type)
 
-        # --- NEW LOGIC: Handle Image vs JSON ---
+        # Handle Image vs JSON ---
         file_ext = filename.rsplit('.', 1)[1].lower()
         result = None # To store result from processing
 
@@ -84,7 +81,7 @@ def upload_file():
             flash(f'File "{filename}" uploaded to "{upload_type}".')
 
         elif file_ext == 'json':
-            # --- JSON PROCESSING (New Logic) ---
+            # --- JSON PROCESSING ---
             
             # 5. Process JSON file and add to master list
             result = add_plates_from_json_file(save_path, upload_type)
@@ -95,11 +92,11 @@ def upload_file():
             else:
                 flash(f'Successfully added plates from {filename} to "{upload_type}".')
 
-        # 7. Render the page again, showing the result (Task 4)
+        # 7. Render the page again, showing the result
         return render_template('index.html', ocr_result=result)
 
     else:
-        # --- UPDATED ERROR MESSAGE ---
+        # --- ERROR MESSAGE ---
         flash('Invalid file type. Allowed types: png, jpg, jpeg, bmp, json')
         return redirect(request.url)
 
