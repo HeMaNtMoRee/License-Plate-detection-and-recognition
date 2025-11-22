@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload License Plate</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
+        .container { max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="file"] { width: 100%; padding: 8px; box-sizing: border-box; }
+        input[type="radio"] { margin-right: 5px; }
+        .radio-label { font-weight: normal; margin-right: 15px; }
+        button { background-color: #007BFF; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #0056b3; }
+        .flash { padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        .flash.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        #result { margin-top: 20px; background: #eee; padding: 15px; border-radius: 4px; }
+        pre { white-space: pre-wrap; word-wrap: break-word; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Upload License Plate Image</h2>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div class="flash success">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form action="/upload" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="file">Select image:</label>
+                <input type="file" id="file" name="file" accept="image/*" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Upload to:</label>
+                <label class="radio-label">
+                    <input type="radio" name="upload_type" value="authorized" checked> Authorized
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="upload_type" value="blacklisted"> Blacklisted
+                </label>
+            </div>
+            
+            <button type="submit">Upload and Process</button>
+        </form>
+
+        {% if ocr_result %}
+            <div id="result">
+                <h3>Last Upload Result:</h3>
+                {% if ocr_result.error %}
+                    <pre style="color: red;">Error: {{ ocr_result.error }}</pre>
+                {% else %}
+                    <pre>{{ ocr_result | tojson(indent=2) }}</pre>
+                {% endif %}
+            </div>
+        {% endif %}
+
+    </div>
+
+</body>
+</html>
