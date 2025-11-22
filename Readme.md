@@ -53,7 +53,6 @@ This system performs automated number plate recognition with two operational mod
 
 **Purpose**: Interactive image upload and database management
 
-- Web interface at `http://localhost:5000`
 - Single image upload with OCR processing
 - Batch JSON file import for bulk plate loading
 - Categorize plates as authorized or blacklisted
@@ -456,6 +455,6 @@ MIN_SHARPNESS = 150             # Better quality
 
 ---
 
-**Last Updated**: November 2025
-**Repository**: License-Plate-detection-and-recognition
+**Last Updated**: November 2025 <br>
+**Repository**: License-Plate-detection-and-recognition <br>
 **Branch**: feature
