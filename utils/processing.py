@@ -7,14 +7,29 @@ import traceback
 from utils.ocr_plate import resize_image_keep_aspect, ocr
 from utils.json_ import process_json_data
 
-REGISTERED_PLATES_FILE = os.path.join('registered_plates', 'registered_plates.json')
-UPLOAD_LOG_FILE = os.path.join('logs', 'upload_events.jsonl')
 
-# Ensure log directory exists
-os.makedirs('logs', exist_ok=True)
-# Ensure registered_plates directory exists
-os.makedirs('registered_plates', exist_ok=True)
+# Ensure directory exists
+UPLOAD_FOLDERS = {
+    'authorized': os.path.join('license_plates', 'authorized'),
+    'blacklisted': os.path.join('license_plates', 'blacklisted'),
+    'registered_plates': os.path.join('registered_plates', 'registered_plates.json'),
+    'logs': os.path.join('logs', 'upload_events.jsonl')
+}
 
+# Create folders and files if missing
+for key, path in UPLOAD_FOLDERS.items():
+    folder = os.path.dirname(path) if path.endswith('.json') or path.endswith('.jsonl') else path
+
+    # create directory
+    os.makedirs(folder, exist_ok=True)
+
+    # create empty file if it's meant to be a file
+    if path.endswith('.json') and not os.path.exists(path):
+        with open(path, 'w') as f:
+            json.dump({}, f)   # start with empty json object
+
+    if path.endswith('.jsonl') and not os.path.exists(path):
+        open(path, 'w').close()  # create empty .jsonl file
 
 def log_upload_event(filename: str, upload_type: str):
     """
